@@ -1,0 +1,212 @@
+
+1、new 和 delete
+	重载  -- 可在全局，也可以在类内（隐式静态）（传类类型参数时优先在类内查找）
+		1. 重载时 size_t 不能有默认参数
+		2. 不能重载 void * operator new（size_t, void *);
+		3. 当在类内重载时，delete 可多一个 sizt_t 形参，其默认值为 void * 所指对象字节数
+
+		void * opertor new(size_t sz)
+		{
+			if (void * mem = malloc(sz))		// #<cstdlib>#
+				return mem;
+			else
+				throw bad_alloc();
+		}
+
+		void operator delete(void * mem) noexcept
+		{
+			free(mem);
+		}
+
+	定位 new -- 调用 void * operator new（size_t, void *) 在已分配的原始内存上构造（因而没有对应的 delete）
+		new (addr) T		
+		new (addr) T(args)
+		new (addr) T[size]
+		new (addr) T[size] { args }			// addr 需为指针（可以指向栈）， size 为连续空间大小， args 为初始化参数
+
+		addr->~T()							// 需手动析构
+
+2、RTTI -- 常用于使用基类指针访问派生类的是非虚函数
+	dynamic_cast
+		dynamic_cast<T *>(Tp)				/* T 需为类类型，Tp 为指针（可为 nullptr），指向对象必须是 T 的 public 基类或派生类，或 T 类，
+													否则返回 0 */
+		dynamic_cast<T &>(lv)				// lv 为左值，转换失败抛出 bad_cast
+		dynamic_cast<T &&>(rv)				// rv 不能是左值
+	
+	typeid 
+		typeid(e)							/* e 可为表达式或类型名，返回 const type_info & 类，其中含 e 类型信息：忽略顶层 const 和引用，但数组和函数不变指针
+													若 e 是含虚函数的左值对象，则运行时才求值（要求对象运行时有效） */
+
+		type_info 类	#std <typeinfo>#
+			操作
+				== , !=
+				t.name()					// 返回 C 字符串，为类型相关信息
+				t1.before(t2)				// 返回 bool ，表示 t1 是否位于 t2 之前
+
+			注：该类默认构造，且拷贝、移动构造和赋值运算符都是删除的，有虚析构
+
+3、枚举
+	限定域枚举
+		enum class emmm						// 可用 struct 代替 class 
+		{ 
+			e = 1,							// 是逗号不是分号
+			em
+		};
+
+		/* 枚举类型变量只能 = 其成员或同类型变量 */
+		emmm var = emmm::e;					// 需要域运算符才能在域外适用
+		// int i = emmm::e;					限定域枚举成员不进行隐式转换
+
+	不限定域枚举
+		enum emmm
+		{
+			e = 1
+		};
+
+	枚举成员为常量表达式，只能使用常量表达式赋值
+
+	指定枚举类成员类型 -- 声明和定义都要一致
+		enum emmm ： long
+		{
+			e = 1
+		}
+
+		限定域枚举：不指定时为 int
+		不限定域枚举：不指定时不确定类型，前置声明时不能不指定类型
+
+4、成员指针 -- 指向非静态变量或函数
+	struct cls
+	{
+		int i;
+		int func() { return 0; }
+	}
+
+	int cls:: * p = &cls::i;			// 成员指针
+	int (cls::* fp)() = &cls::func;		// & 不能少，注意括号
+
+	cls var, * vp = &var;
+	var.*p = 1;							// 指针解引用
+	vp->*p = 1;
+	(var.*fp)();						// 函数调用
+	(var->*fp)();
+
+	注：可通过静态类内函数成员和成员指针将 private 暴露
+		class cls
+		{
+			int i;
+		public:
+			static const int cls:: * func() { return &cls::i; } 
+		}
+
+		auto p = cls::func();
+
+
+	将成员函数指针转换为可调用对象
+		1. function		#std <functional>#
+			class cls
+			{
+				void func() { }
+			}
+
+			auto f = &cls::func;
+
+			cls a;
+			function<void (cls)> fcn = f;		// 对象必须是第一个参数
+			fcn(a);								// 等价于 (a.*f)();
+
+		2. mem_fn		#std <functional>#
+			class cls
+			{
+				void func() { }
+			}
+
+			auto f = &cls::func;
+
+			cls a, *p = &a;
+			auto fcn = mem_fn(f);				
+			fcn(a);								// (a.*f)()
+			fcn(p);								// (p->*f)()
+
+		3. bind			#std <functional>#
+			class cls
+			{
+				void func() { }
+			}
+
+			auto f = &cls::func;
+
+			cls a, *p = &a;
+			auto fcn = bind(f, _1);
+			fcn(a);								// (a.*f)()
+			fcn(p);								// (p->*f)()
+
+5、嵌套类
+	class cls
+	{
+	public:
+		class n_cls;							// 嵌套类声明，可以在类内定义，也可以在类外定义	
+	}
+
+	class cls::n_cls							// 定义
+	{
+	public:
+		void func();
+	}
+
+	void cls::n_cls::func() { }					// 嵌套类函数定义
+
+6、union（默认 public）
+	1. 不含类成员 union -- 编译器按成员次序合成默认构造和拷贝控制
+		union un
+		{
+			char c;
+			int i;
+		}
+
+		un var = { 'a' };							
+		var.i = 1;
+
+	2. union 内的类成员 --	union 内类成员若有拷贝控制成员，则 union 对应的合成拷贝控制成员是删除的；
+								若有非合成默认构造，除非有一个成语有默认初值（最多允许一个成员有默认初值），union 的默认构造是删除的
+		1. union 内含有类成员，就需要考虑首次使用该类对象赋值给 union 对象时的构造以及 union 对象不在存储该类对象是的析构问题
+		2. 当类内嵌套匿名 union ，则匿名类内的成员是共享内存的类成员，此时的匿名 union 不再是 union
+
+	3. 匿名 union （C 没有）-- 不能有 protected 、 private 成员，不能有函数成员，不能有 static 变量
+		union									// 自动生成一个对象，且 union 成员作用域被注入外层域
+		{
+			char c;
+			int i;
+		}
+
+		c = 'a'									// 直接访问
+
+7、局部类 
+	1. 所有成员都要定义在类内部，且不允许静态成员
+	2. 只能访问外层域（非直接也可以）定义的类型名，静态变量和枚举
+
+8、位域 
+	1. 位域不能是 static 成员
+	2. 类型需为整形或枚举
+	3. & 不能作用于位域，所以指针不能指向位域
+
+9、volatile -- 语法方面类似于 const
+	注：volatile T 不能转为 const T & ，可转为 const volatile T & 
+
+10、extern "C" -- 链接指示
+	extern "C" int i;					// i 来自 C 文件
+
+	extern "C"
+	{
+		void func();
+		int j;
+	}
+	
+	extern "C"
+	{
+		#include <string.h>
+	}
+
+	extern "C" void (*p) func()			// 指向 C 函数的指针
+	extern "C" typedef void f(int)		// f 为 C 的 void (*)(int) 类型
+
+	extern "C" void f() { }				// C 可调用该 C++ 内写的函数		

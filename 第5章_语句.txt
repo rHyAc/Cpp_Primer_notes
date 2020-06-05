@@ -1,0 +1,69 @@
+
+1、while
+	while (int i = func())				// 在 C 中， i 不能再此处定义
+		cout << i;			
+
+	do
+	{
+		...
+	} while (/* int i = func() 非法 */)			
+
+2、switch
+	case 后接整形常量表达式
+
+	case true:
+		// string str;					非法，str 进行了隐式初始化，不能跳入初始化变量的作用域（只能在定义处进入）
+		// int ival = 0;				非法，ival 进行了初始化
+		int jval;						// OK ，没有进行初始化
+		break;
+	case false:
+		jval = 1;
+
+
+	case true:
+	{
+		string str;						// OK 
+	}
+	case false:
+		
+
+	switch(c)
+	{
+		//int jval = 1;					非法
+		int jval;
+		case true:
+			jval = 2;					
+			break;
+		case false:
+			jval = 3;					
+	}
+
+3、范围 for
+	for (auto a : {1, 2, 3}) { ... }		// OK
+
+4、goto
+		goto label;
+		//int c = 1;							非法，不能跳入初始化变量的作用域（只能在定义处进入）
+		int c;									// OK
+	label:
+		c = 2;
+
+
+	begin:
+		int i = 1;
+		if (i == 1)
+			goto begin;							// OK
+
+5、异常
+	try 
+	{
+		throw runtime_error("output message");				// runtime_error 类型在 #std <stdexcept>#
+	} 
+	catch (runtime_error err) 
+	{							
+		cout << err.what();									// what() 成员函数返回 const char * 类型的 "output message"
+	} 
+	catch ( ... ) 
+	{
+	
+	}

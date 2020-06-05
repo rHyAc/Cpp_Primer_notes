@@ -1,0 +1,260 @@
+
+1、tuple #std <tuple>#
+	构造
+		tuple<T1, T2, ..., Tn> t;				// 值初始化
+		tuple<T1, T2, ..., Tn> t(v1, v2, ... , vn);		// explicit
+
+	操作										// 要求两个 tuple 变量有相同数量成员
+		== , !=
+		< , <= , > , >=						
+
+	函数操作
+		make_tuple(v1, v2, ..., vn)
+		get<i>(t)								// 返回 t 的 第 i （0 开始）个成员的引用，t 为左值则返回左值引用，否则返回右值引用。 tuple 的成员均为 public
+		tuple_size<typleType>::value			// 返回 tuple 成员数量，类型为 size_t
+		tuple_element<i, tupleType>::type		// 返回第 i 个成员类型
+
+2、bitset #std <bitset>#
+	构造										// explicit
+		bitset<n> b;							// n 要为常量表达式， n 位 0
+		bitset<n> b(u);							// 将 u(unsigned long long) 的低 n 位拷贝
+		bitset<n> b(s, pos, m, char1, char2);	/* 将 s(string) 从 pos（默认 0，为 bitset 高位）开始 m（默认 string:: npos）个字符拷贝，
+														s 只能有 char1（默认 '0')和 char2（默认 '1'）两种字符 *
+
+	操作
+		b.any()									// 若存在置位，返回 true
+		b.all()									// 所以置位，返回 true
+		b.none()								// 不存在置位，返回 true
+		b.count()								// 返回置位位数
+		b.test(pos)								// 若 pos 对于位置位，返回 true
+
+		b.size()								// 返回 n
+
+		b.set(pos, v)							// pos 位置 v（默认 true）
+		b.set()									// 所以都置位
+		b.reset(pos)							// pos 复位
+		b.reset()								// 全复位
+
+		b.flip(pos)								// pos 取反
+		b.flip()								
+
+		b[pos]
+		b[pos].flip()
+
+		b.to_ulong()
+		b.to_ullong()
+		b.to_string(char1, char2)				// char1（默认 '0'），char2（默认 '1'）
+
+		os << b
+		is >> bs
+
+		&= ,|= , ^=, ~							
+		<< , <<= , >> , >>=
+
+3、regex #std <regex>
+	regex 类
+		构造
+			regex r(re);						/* 非 explicit ， re（string 、 char * 、 一对 It 、 {字符} 、 字符指针 + 数目）为正则表达式
+														若正则表达式出错（正则表达式在 regex 类构造时才编译，运行时才能知道）抛出 regex_error 类型错误，
+														可通过 reg_err.what() 返回错误信息，
+														reg_err.code() 返回错误码，错误码定义在 regex 和 regex_constants::error_type 中 */
+			regex r(re, f);						/* f（regex_constants::syntax_option_type ， 默认 ECMAScript），可为
+														icase				忽略大小写
+														nosubs				不保存匹配到字符
+														optimize			指向速度优于构造速度
+														ECMAScript			使用 ECMA-262 正则语法
+														basic				使用 POSIX 基本的正则语法
+														extended			...        拓展的 ...
+														awk
+														grep
+														egrep
+												*/
+			
+			注：写正则表达式时，要用 \\ 表示 \
+		操作
+			r.assign(re, f)						// 重设 r
+			r.mark_count()						// 返回 r 中子表达式数目，() 内算一个子表达式
+			r.flags()							// 返回 r 标志
+
+	smatch 类 -- 保存 string 匹配结果
+		构造
+			smatch sm
+		操作
+			sm.prefix()							// 返回保存前部不匹配内容信息的 ssub_match 对象
+			sm.suffix()	
+			sm.ready()							// 若 sm 保存有匹配结果（包括匹配失败），返回 true
+			sm.size()							// 匹配失败，返回 0；否则返回匹配字表达式数目
+			sm.empty()							// 若 size 为 0 ，返回 true
+			sm.format(fmt, mft)					/* 返回格式化字符串内容 
+														fmt
+															string fmt = "$2.$3"		第二子表达式与第三子表达式用 . 连接  */
+														mft（默认 format_default）
+															match_default				同 format_default
+															match_not_bol				不将首字符作为行首处理
+															match_not_eol				不将尾字符作为行首处理
+															match_not_bow				不将首字符作为单词首处理
+															match_not_eow				不将首字符作为单词尾处理
+															match_any					若多个匹配，返回任一个
+															match_not_null				不匹配空序列
+															match_continuous			匹配要从输入的首字符开始
+															match_prev_avail			输入序列包含第一个匹配之前的内容
+															format_default				ECMAScript 规则替换字符串
+															format_sed					POSIX sed 规则替换字符串
+															format_no_copy				不输出输入序列中未匹配部分
+															format_first_only			只替换子表达式的第一次出现
+												 */
+
+			sm.format(dest, fmt, mft)			// 将字符串写到迭代器 dest 所指位置 
+
+			sm.length(n)						/ 第 n 个子表达式（子表达式由 re 的（）觉得）长度
+														n 默认为 0 ，此时表示整个匹配结果 */
+			sm.position(n)						// 第 n 个表达式与开始距离
+			sm.str(n)							// 返回第 n 个 子表达式 string
+			sm[n]								// 返回第 n 个表达式对于的 ssub_match 对象 
+			sm.begin(), sm.end()			
+			sm.cbegin(), sm.cend()
+
+	sub_match 类 -- 一个子表达式对应一个 sub_match 对象
+		ssub_match								// 用于 string
+		csub_match								// 用于 char *
+
+			操作
+				ssm.match						// bool 对象，若 ssm 已匹配，则为 true
+				ssm.first						// 指向首位置的迭代器
+				ssm.second						// 指向尾后位置迭代器
+				ssm.str()						// 返回字符串
+				ssm.length()					// 返回字符串长度
+
+	cmatch 类 -- 保存 char * 匹配结果
+		
+	迭代器类型
+		sregex_iterator							// 用于 string 类型
+		cregex_iterator							// 用于 char * 类型
+
+		构造
+			sregex_iteraotr end;				// 尾后迭代器
+			sregex_iterator it(b, e, r);		// 调用 regex_search ，it 指向第一个匹配位置迭代器
+
+		操作
+			*it									// 返回 smatch 对象引用
+			it->								// 返回指向 smatch 对象指针
+			++it								// 会调用一次 regex_search 查找下一个匹配，返回指向下一个匹配位置迭代器
+			it++								// 会调用一次 regex_search 查找下一个匹配，返回原 it
+			== , !=
+
+
+	函数操作
+		regex_match(seq, m, r, mft)				/* 全部匹配返回 true ； seq 为字符序列（string， char * ， 一对 iterator），
+														m 保存匹配内容（类型与 seq 兼容；可选）， r（regex 对象），
+														mft（regex_constants::match_flag_type，可选） */
+		regex_search(seq, m, r, mft)			// 部分匹配返回 true
+		regex_replace（seq, r, fmt, mft)		/* 调用 regex_search 匹配，匹配部分按字符串格式按 fmt（string ， char *）和 mft（可选）生成，
+														而其他内容默认不变，返回改变后的字符串 */
+		regex_replace（dest, seq, r, fmt, mft)	// 目标字符串复制到迭代器 dest 所指位置
+
+4、random #std <random>#
+	
+	default_random_engine 类
+		类型成员
+			result_tyype									// 随机数无符号整形
+		构造
+			default_random_engine e;
+			default_random_engine e(s);						// 整形 s 作种子（一般为 time(0) #<ctime>#）
+		
+		操作
+			e.seed(s)										// 使用种子 s 重置引擎
+			e.min()											// 随机数最大值
+			e.max()
+			e.discard(u)									// u（unsigned long long），引擎推进 u 步
+			e()												// 生成随机数
+
+		uniform_int_distribution<T> 类 -- 均匀分布
+			构造
+				uniform_int_distribution<T> u(min, max);	// T 默认为 int ，分布范围 [min, max]
+
+			操作
+				u(e)										// 调用 e() 生成一随机数，并映射到 [min, max]，返回结果
+				u.min()										// u(e) 生成的最大值
+				u.max()
+				u.reset()									// 重建 u 状态，随后生成值不依赖与已生成值
+
+		bernoulli_distribution 类 -- 伯努利分布，生产 true 或 false ，各个概率均为 0.5
+			构造
+				bernoulli_distribution b;
+				bernoulli_distribution b(0.55);				// 生成 true 的概率变为 0.55
+
+5、IO
+	操作符
+		cout << boolalpha					// 设置后，bool 打印为 true 和 false
+		cout << noboolalpha					// 取消 boolalpha
+
+		cout << setbase(b)					// b 进制（只对整形） #std <iomanip>#
+		cout << oct							// 八进制（只对整形）
+		cout << hex							// 十六进制（只对整形）
+		cout << dec							// 十进制（只对整形）
+		cout << hexfloat					// 十六进制（只对浮点）
+		cout << defaultfloat				// 十进制（只对浮点）
+
+		cout << showbase					// 显示进制前导，如 0x 、 0
+		cout << noshowbase
+
+		cout << uppercase					// 全大写
+		cout << nouppercase
+
+		cout.precision()					// 仅返回当前有效数字位数
+		cout.precision(n)					// 有效数字位数设置为 n 位，返回原有效数字位数
+		cout << setprecision				// #std <iomanip>#
+
+		cout << setw(n)						// 下一个输出内容使用 n 个字符空间 #std <iomanip>#
+		cout << setfill(c)					// 用字符 c 代替 空格 作为填充 #std <iomanip>#
+		cout << left						// 左对齐
+		cout << right
+		cout << internal					// 符号和值放填充
+
+		cout << showpoint					// 浮点无小数部分也显示小数点
+		cout << noshowpoint
+
+		cout << showpos						// 显示 +
+		cout << noshowpos
+
+		cout << fixed						// 浮点定点十进制
+		cout << scientific					// 浮点科学计数法
+
+		cout << unitbuf						// 每次输出后刷新缓存
+
+		cin << skipws						// 输入跳过空白
+		cin << noskipws
+
+	未格式化操作
+		单字节
+			is.get(ch)							// 读入一个字节存入 ch 中；返回 is
+			os.put(ch)
+			is.get()							// 读入一个字节，返回 (int)字节
+			is.putback(ch)						// 将 ch 返回 is ；返回 is
+			is.unget()							// 将是一个读入字节送回输入流；返回 is
+			is.peek()							// 读入一个字节，但在 is 中删除该字节，返回 (int)字节
+
+		多字节
+			is.get(dest, size, delim)			// 最多读入 size - 1 个字节到 dest（char 数组），自动填充 '\0'，遇到 delim 结束，但将 delim 保留在流
+			is.getline(dest, size, delim)		// delim 不留在流中
+			is.read(dest, size)					// 返回 is
+			is.gcount()							// 返回上个未格式化都操作从 is 读入字节数，对于 peek 、 unget 、 putback 则返回 0
+			is.ignore(size, delim)				// 忽略最多 size（默认 1）个字符，包括 delim（默认 EOF）
+			os.write(src, size)
+
+		流随机访问 -- 一般 iostream 不支持， g 用于输入流， p 用于输出流， 出入流两个都可用
+			is.tellg()							// 返回流中标记
+			os.tellp()
+			
+			is.seekg(pos)						// 将标记置为绝对地址 pos（一般为 tell 返回）位置； pos 类型为 pos_type #std istream#
+			os.seekp(pos)
+			is.seekg(offset, from)					
+			os.seekp(offset, from)				/* 将标记置为 from 之前或后 offset（正后负前）个字符
+														offset 类型为 off_type #std istream#
+														from 可为 
+															beg		流开始
+															cur		流当前
+															end		流结尾
+												 */
+			
+	

@@ -1,0 +1,68 @@
+
+1、IO 流状态
+	while (cin >> var) 
+
+	/* strm 为 IO 流（istream ， ostream ， ifstream ， isstream 等）*/
+	strm::badbit		// 常量，定义了 badbit 掩码， badbit 被置位表示 IO 流无法恢复 
+	strm::failbit		// 常量，定义了 failbit 掩码， failbit 被置位表示 IO 流发生可恢复错误
+	strm::eofbit		// 常量，定义了 eofbit 掩码，读到 eof 时， eofbit 和 failbit 均被置位
+	strm::goodbit		// 常量，值为0
+
+	/* s 为 IO 流对象（cin ， cout 等）
+	s.eof()				// eofbit 被置位返回 true
+	s.fail()			// failbit 或 badbit 被置位返回 true
+	s.bad()				// badbit 被置位返回 true
+	s.good()			// eofbit , failebit , badbit 均没置位返回 true
+	s.rdstate()			// 返回 strm::iostate 类型的值，该值为状态位组合
+	s.setstate(flags)	// 将掩码 flags （类型为 strm::iostate）对应的状态位置位，返回 void
+	s.clear(flag)		// 清空状态位后，将掩码 flags （默认为 0）对应的状态位置位，返回 void
+	
+2、刷新输出缓冲区
+	1. 
+		cout << "emmm" << endl;			// 输出换行，并刷新
+		cout << "emmm" << ends;			// 输出 '\0' ，不刷新
+		cout << "emmm" << flush;		// 刷新
+
+	2. 
+		cout << unitbuf;				// 之后的输出均会立刻刷新输出缓冲； cerr 默认
+		cout << nonunitbuf				// 之后输出会缓冲
+	
+	3. 关联流到输出流（A.tie(&B); -- 访问 A ，B 便会刷新）
+		cin.tie()						// 返回当前关联流。若无联系流，则返回空指针。
+		cin.tie(osp)					/* osp 为输出流指针，设置当前关联流 osp 所指输出流 
+											返回操作前的关联流。若无关联流，则返回空指针 */
+
+3、文件IO
+	ifstream, ofstream, fstream 类 #std <fstrea>#
+		初始化
+			fstream fstrm;
+			fstream fstrm(s, mode);		// 打开 s ， s 可以是 const char * 或 string 类型， mode 有默认实参
+				mode 
+					in					// r
+					out					// w
+					app					// a
+					in | out			// r+
+					in | out | trunc	// w+
+					in | app			// a+
+					binary				
+		
+		操作
+			fstrm.open(s)				// 打开 s ， s 可以是 const char * 或 string 类型；返回 void
+			fstrm.close()				// 关闭文件；返回 void
+			fstrm.is_open()				// 返回 bool 类型，指出与 fstrm 关联的文件是否打开
+
+		注：文件打开失败会置位 failbit
+
+4、string 流
+	istringstream, ostringstream, stringstream 类 #std <sstream>#
+		初始化
+			stringstream strm;
+			stringstream strm(s);		// explicit ， 保存 string s 的一个拷贝
+
+		操作
+			strm.str()					// 返回 strm 保存的 string 拷贝
+			strm.str(s)					// 将 string s 拷贝到 strm ； 返回 void
+
+
+注：1. 读写 IO 会改变其状态，所以 IO 对象的引用不能加 const
+	2. IO 对象不可复制

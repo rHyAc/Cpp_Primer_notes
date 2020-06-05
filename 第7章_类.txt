@@ -1,0 +1,211 @@
+
+1、基础
+	struct stt							// struct 默认 public ， class 默认 private （class 的构造应放在 public）
+	{
+		typedef int * ntyp;				// 要声明才能用，与一般的成员不同
+
+		string str;
+		string emmm;
+		string ini{"emmm"};				// 类内初始化只能用 = 或 {} 这两种方式
+
+		mutable int mvar;				// mutable 变量在 const 成员函数中人可以修改
+
+		stt();							// 没有定义任何构造且成员均可默认初始化时，编译器才会生成默认构造函数
+								/* 构造函数初始化列表 */
+		stt(const string & s) : str(s), var(0) { }				// 创建对象时，没在构造中初始化且无初始值的成员会进行默认初始化
+			
+		/*  类内定义的函数（包括构造，友元）为隐式 inline */
+		int in_func() const				/* 将从外部得到的 this 指针类型从 stt * const 改变为 const stt * const ，从而能在常量对象上调用该函数；
+											但在该函数内部无法在调用非 const 成员函数，因为不能将 this 指针由 const stt * const 改为 stt * const ；
+											有 const 和 无 const 的函数可重载
+										*/
+		{
+			// var = 2;					非法，直接访问成员函数实际是通过 this 指针实现的，但函数加了 const
+			mvar = 2;					// OK 
+			return var;					// OK ，成员变量定义在成员函数后也能访问
+		}					
+		int out_func() const;	
+
+	private:
+		int var; 	
+
+		friend stt & f_func1(stt &);			// 友元函数还需要在类内有一个友元声明；友元函数对类都是可见，声明或定义放在类内哪里都行
+		friend stt & f_func2(stt & a)			// 友元也可以在类内定义，类外仅需一个声明即可
+		{
+			return a
+		}
+	};
+
+	stt::stt() = default;					// = default 要求编译器生成的默认构造函数（合成默认构造函数）
+
+	int stt::out_func() const { return var + 1; }				// 声明和定义都需要有 const
+
+	stt & f_func1(stt &);										// 外部声明
+	stt & f_func2(stt &);										// 外部声明
+		
+	stt & f_func1(stt & a) { a.var = 2; return a; }				// 定义
+
+
+
+	注：对于类，编译器会
+			1. 编译成员（包的声明
+			2. 直到类全部可见才编译函数体
+
+2、
+	class cls1 { int var; }
+	class cls2 { int var; }
+
+	class cls1 cvar1;				// OK
+	//cls2 cvar2 = cvar1;			非法，即使类中成员变量相同，但仍为不同类
+
+3、前向声明
+
+	class cls;						// 不完全类型
+
+	作用：
+		1. 定义指向该类的指针和引用
+		2. 声明（不能定义）以不完全类型作参数和返回类型的函数
+		3. 不完全类的成员可以把该不完全类当完全用
+
+	注：因而一个类不能有本类型的成员
+
+4、友元（友元不属于类；友元的友元不是友元；友元也不能继承）
+
+	友元类
+		class cls1
+		{
+			int i;
+			friend class cls2;
+		};
+
+		class cls2
+		{
+			void clear(cls1 & cvar)
+			{
+				cvar.i = 0;					// cls2 的成员函数可以直接访问 cls1 的 private 成员
+			}
+		};
+
+	友元成员函数
+		class cls1;								// 要先于 cls2 定义前声明 cls1
+
+		class cls2
+		{
+		public:
+			void clear(cls1 &);					// 只能在类内 public 部分，声明
+		};
+
+		class cls1								// 要在 cls2 后定义 cls1
+		{
+			int i;
+			friend void cls2::clear(cls1 &);			
+		};
+
+		void cls2::clear(cls1 & cvar)			// 定义 cls1 后才能定义函数
+		{
+			cvar.i = 0;					
+		};
+
+5、构造
+	1、初始化与赋值
+		class cls
+		{
+			int i;
+			const int j;						// 必须显式初始化
+			int & k;							// 必须显式初始化
+												// 未提供默认初始化的类也只能显式初始化
+		public:
+			cls() : j(i), k(i), i(1) {}			// 初始化顺序会按照成员声明的顺序进行，列表中每个成员变量只能出现一次
+
+		/*
+			cls() 
+			{
+				i = 2;
+				j = i;							非法，不能赋值且 j 未初始化
+				k = i;							非法，k 未初始化
+			}
+		*/
+		};
+
+	2、构造函数若给参数都提供默认实参，则该构造也是默认构造
+
+	3、委托构造函数
+		class cls
+		{
+			int var;
+			cls() : cls(1) {}					// 委托构造，将部分任务交给 cls(int i) ，只能委托一个
+			cls(int i) : var(i) {}
+		};	
+
+	4、隐式转换
+		1. 只有一个参数的构造 -- 转换构造函数，能将构造的参数类型隐式转换成类类型，转换时执行该构造
+		2. 在类内的转换构造（声明或定义）前加 explicit 可禁用对应类型隐式转换，但仍可用显示转换
+		3. 一个对象只能执行一次转换操作
+			void func(A);
+			A avar;
+			C cvar;						// C 可以转 B ， A 有 B 的转换构造
+			//func(cvar);				非法
+			avar = cvar;				// OK ， 对于 cvar 执行一次 C 转 B ，对于 avar 执行一次 B 的转换构造
+			
+			
+
+6、聚合类 
+	1. 所以成员 public
+	2. 没构造
+	3. 没静态成员
+	4. 没基类，virtual 函数
+
+	class cls
+	{
+	public:
+		int i;
+		double d;
+	};
+
+	cls cvar1{1};								// OK， 等价于 cls cvar1 = {1}; ，类似于 C 的 struct 初始化， d 被填 0
+	cls cvar2;
+	cvar2 = {1};								// OK
+
+7、字面类类
+	1. 拥有默认析构函数
+	2. 对于非联合体，所有非静态数据成员和基类是非 volatile 字面值类型
+	3. 是以下之一
+		1. 聚合类型
+		2. 或拥有至少一个 constexpr 构造函数（可为模板）且非复制或移动构造函数
+
+			constexpr 构造函数
+				1. 执行后所以成员初始化 （有初始值的成员可以不通过该构造初始化）（类成员只能使用 constexpr 构造)
+				2. 符合 constexpr 要求
+
+8、常量与静态成员（静态成员为类共有的）
+	class cls
+	{
+		/* 类内均为普通 static 成员的声明，不能是定义 */
+		static int svar;										
+		static cls ncsvar;										// 声明 static 变量可以使用非完全类型									
+		static void sfunc();									// 不持有 this 指针（不能访问非静态成员）
+
+		int func(int i = svar) { return svar = i; }				// this 指针能访问静态成员，只有静态成员（包括函数）能作默认实参
+
+		inline static isvar = 3;								// inline static 只能在定义处初始化
+		constexpr static double dvar = 3;						// 只能使用常亮表达式初始化，隐含 inline
+	public:	
+		const static int cvar = 3;								// 只能用于整形和枚举型，只能使用常亮表达式初始化。
+		const static int cvar2;
+	}
+
+	void cls::sfunc() {}						// static 只出现在类内函数声明
+
+	cls c;
+	int cls::svar = c.func();					// 普通静态成员变量只能在类外（全局）初始化，可以访问 private 成员，该变量程序结束才销毁
+	const int cls::cvar2 = 3;
+
+	int i = cls::svar;
+	cls::sfunc()								// 也可以这样调用静态成员
+
+	const int cls::cvar;						// 全局处，不使用初始化手段重新定义 const static 变量
+	const int & i = cls::cvar;					// 对于 const static 成员变量，若程序对该变量的操作涉及地址，则需要在全局处作上行操作
+
+注：cls a;										// 默认构造
+	cls a();									// 声明函数 a
+

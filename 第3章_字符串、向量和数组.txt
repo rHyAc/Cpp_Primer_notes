@@ -1,0 +1,106 @@
+
+
+1、名空间
+	using
+		using std::cin; using std::cout	// 每个名都要有 using 声明语句，语句间用分号隔开
+
+		头文件不应包含 using
+
+2、 string #std <string>#
+	非成员函数
+		数值转换
+			to_string(val)					// 返回 val 的 string 
+
+			stoi(str, p, b)					// 返回 str 的数值； b 为转换用的基数，默认为 10 ；p(size_t *) 保存 str 中第一个非数值字符下标，默认为 0
+			stol(str, p, b)
+			stoul(str, p, b)
+			stoll(str, p, b)
+			stoull(str, p, b)
+
+			stof(str p)
+			stod(str, p)
+			stold(str, p)
+
+		IO
+			is >> str						// 忽略头空白，到下一空白停止
+			os << str
+			getline(is, str)				// is 为输入流对象；不忽换行前的字符，读入换行后停止，不存入换行
+
+
+	字符处理
+		for (auto c : str) { ... }		
+		for (auto & c : str) { ... }	// 用于更改
+		注： <cctype> 中有字符操作函数
+
+	注：<cstring> 中 有 C 字符串操作
+		strlen(cp)						
+		strcmp(cp1, cp2)				// cp1 == cp2 ，返回 0 ； cp1 > cp2 ， 返回正； cp1 < cp2 ， 返回负
+		strcat(cp1, cp2)				// cp2 接到 cp1 尾部，返回 cp1 （注意 cp1 要够长，特别是结尾的 '\0' ）
+		strcpy(cp1, cp2)				// cp2 复制到 cp1 ，返回 cp1 （注意 cp1 要够长，特别是结尾的 '\0' ）
+
+3、迭代器
+	vector<T> v;							// vector<T> ， string 类型均含迭代器成员
+	auto front = v.begin();					// 指向头的迭代器，v 为空时同 v.ennd()
+	auto rear = v.end();					// 指向尾“后”迭代器
+											/* 若对象 v 为常量（const）， 则 v.begin() 和 v.end() 类型为 vector<T>::const_iterator（不能修改所指对象），
+											 *		否则为 vector<T>::iterator
+											 * 而 v.cbegin() 和 v.cend() 恒为 vector<T>::const_iterator
+											 * 注：与 const 指针和引用类似，iterator 类型可以转为 const_iterator，但反过来不行
+											 */
+											// 注：在 for 内使用迭代器，v 的元素个数不能改变
+
+		操作（与指针相似）
+			*iter
+			iter->men
+			++iter
+			--iter
+			==, !=
+
+			迭代器运算（仅部分类型的迭代器支持，如 vector 、 string 、 deque 、 array）
+				iter + n
+				iter - n
+				iter += n
+				iter -= n
+				iter1 - iter2				// 返回类型为 class::difference_type 的带符号整形
+				>, >=, <, <=
+
+
+	begin(arr)	#std <iterator>#			// 可用于返回数组头元素指针
+	end(arr)	#std <iterator>#			// 可用于返回数组尾后元素指针
+
+	注：
+		指针相减，结果类型为 ptrdiff_t 的带符号整形
+
+
+5、数组
+	int i = 10;
+	constexp j = 10;						// 用 const 也可以，只要 j 是常量表达式
+	int arr[j];								// OK
+	//int arr[i];							// C++ 中非法， i 不是常量表达式
+
+	按元素访问
+		arr[n]								// n 可以为负数
+
+	支持范围 for
+		int arr[5];
+		int * p = arr;
+		for (auto a : arr) {}
+		for (auto & a ; arr) {}				// 修改 arr 中元素
+		// for (auto a : p) {}				// 非法
+
+	int arr[10];
+	auto a(arr);							// 等价于 auto a = arr; 其中 auto -> int *
+	decltype(arr) anr;						// anr 类型为 int [10] 而不是 int *
+
+	使用数组初始化 vector
+		int arr[] = {1, 2, 3};
+		vector<int> va(begin(arr), end(arr));
+
+	多维数组
+		int arr[][5] = {{1}, {2}, {3}};		// arr[0][0] == 1 ， arr[1][0] == 2 ， arr[3][0] == 3 
+		int arr1[][5] = {1, 2. 3};			// arr[0][0] == 1 ， arr[0][1] == 2 ， arr[0][2] == 3 
+		for (auto & row : arr)				// row 类型为 int (&)[5] 。若缺少 & ，则 auto -> int * ，将不能在内层使用范围 for
+			for (auto col : row)			// 若需修改， col 前加 &
+			{
+				...
+			}

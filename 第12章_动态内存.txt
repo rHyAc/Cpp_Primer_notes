@@ -1,0 +1,96 @@
+
+1、智能指针 #std <memory># -- 自动释放对象（使用引用计数）
+	share_ptr 与 unique_ptr 均支持
+		构造
+			xxx_ptr<T> p;			// 空指针
+
+		操作
+			p.get()					// 返回普通指针；注不要使用该返回指针初始化 share_ptr（两个 share_ptr 会独立计数）
+			p.swap(q)				// 等价于 swap(p, q) ，交换 p 和 q 中的指针 
+
+	1. shared_ptr -- 可多个指针指向同一对象
+		构造
+			share_ptr<T> p(q);		// q(share_ptr<T>)
+			share_ptr<T> p(q, d)	// d 代替 delete
+			share_ptr<T> p(Tp);		// explicit ， Tp(T *) 且 Tp 指向动态内存（因为 share_prt 会自动 delete）；
+									//		注：将 Tp 所指动态内存的管理权交给 share_ptr 后，不应使用 Tp 在访问该内存（可能被 share_ptr delete）
+			share_ptr<T> p(Tp, d)	
+			share_ptr<T> p(u);		// 接管 u(unique_ptr) 的对象，将 u 置空
+
+		操作
+			make_share<T>(args)		// 返回指向动态分配的对象的 share_ptr ，args 为构造函数参数
+			p = q					// p 和 q 同类型
+
+			p.use_count()			// 返回指向对象的共享指针数目
+			p.unique()				// 若 use_count 为 1 ，则返回 true
+
+			p.reset()				// 释放对象（释放前应检查 unique ，确保唯一使用所指对象），然后置空
+			p.reset(Tp)				// 释放后，拷贝 Tp
+			p.reset(Tp, d)
+
+	2. unique_ptr -- 指针独占对象
+		构造
+			unique_ptr<T> u;		// unique_ptr 支持动态数组管理，T 可以为 T[] ，shared_ptr 需要自定义删除器才能指向动态数组（不支持 T[]）
+			unique_ptr<T> u(Tp);
+			unique_ptr<T, decltype(d) *> u(Tp, d);	
+
+		操作
+			u[n]
+			u = nullptr				// 释放 u 所指对象，将 u 置空
+			u.release()				// 释放对指针的控制器，返回指针，置空 u
+			u.reset()				// 等价于 u.reset(nullptr) ，释放对象，置空 u
+			u.reset(Tp)
+
+			注：unique_ptr 不支持 = ，但是可以在拷贝一个即将销毁的 unique_ptr （函数返回 unique_ptr）
+			
+	3. weak_ptr -- 不控制对象生存期，指向 shared_ptr 管理对象，但不增加 shared_ptr 引用计数
+		构造
+			weak_ptr<T> w(sp);		// sp(share_ptr<T>)
+
+		操作
+			w = p					// p(share_ptr<T> 或 weak_ptr<T>)
+			w.reset()
+			w.use_count()			// 返回与 w 共享的 share_ptr 的数量
+			w.expired()				// use_count == 0 时返回 true
+			w.lock()				// expired == true 时返回空的 share_ptr ，否则返回指向 w 所指对象的 share_ptr
+											注：weak_ptr 要用此函数转为 shared_ptr 才能使用，转换前要检查 expired
+
+2、 new 、 delete
+	/* 注：对于有默认构造的类（非编译器生成），默认初始化和值初始化都是调用默认构造 */
+	int * p = new int;				// 默认初始化，值未知
+	int * p = new int();			// 值初始化，对象内存填 0
+
+	int * p = new int[n];			// n 可以为 0 ，相当于尾后指针
+	int * p = new int[n]();
+	int * p = new int[n]{1, 2, 3};
+
+	auto * p = new auto(var);
+
+	int * p = new int;				// 失败抛出 std::bad_alloc #std <new>#
+	int * p = new(nothrow) int;		// 返回空指针； nothrow #std <new>#
+
+	void * operator new(size_t, nothrow_t &) noexcept;		// nothrow_t 类型在 #std <new># ，其中还定义一个 nothrow_t 常量
+	void operator delete(void *, nothrow_t &) noexcept;
+
+
+3、allocator #std <memory>
+	构造
+		allocator<T> a
+
+	操作
+		a.allocate(n)					// 返回指向 n 块原始内存指针（仅分配内存，不构造对象）
+		a.deallocate(p, n)				// p 为 allocate 返回指针， n 为 allocate 时参数；调用前要确保该内存对象被 destory
+
+		a.construct(p, args)			// p 指向已分配的原始内存，使用 args 在该内存构造对象
+		a.destory(p)					// p 为 construct 时的参数 
+
+		uninitialized_copy(b1, e2, b2)	// 拷贝到 b2 所指原始内存，返回指向最后一个对象后的迭代器
+		uninitialized_copy_n(b1, n, b2)	
+		uninitialized_fill(b, e, t)		// 迭代器范围内的原始内存创建值为 t 对象
+		uninitialized_fill_n(b, n, t)
+
+
+注：使用动态内存原因出于三者之一：
+	1. 程序不知道对象数量
+	2. 程序不知道对象类型
+	3. 程序中多个对象共享数据

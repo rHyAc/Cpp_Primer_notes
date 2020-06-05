@@ -1,0 +1,60 @@
+
+1、运算符重载
+	1. 除了重载函数调用运算符 operator() 外，其他重载运算符不能有默认实参
+	2. 有点的运算符都不可以重载
+	3. 确定求值顺序的运算符重载后将失去这个属性
+	4. =, [], (), -> 必须作为成员函数重载
+	5. 一般 == 和 != 共同重载，且其中一个的操作委托另一个执行
+	6. 对 [] 重载最好有常量版本（返回常量）和非常量版本
+	7. 前后置加或减重载
+		前置
+				cls & operator++() { }
+		后置
+				cls operator++(int) { cls ret = *this; ++*this; return ret; }	// 委托前置
+	8. -> 的重载必须返回指针或重载了 -> 的类（此时实际返回的是该类的重载 -> 的返回值，如此类推直到返回指针）
+		T * operator->() { }				// 不需要参数		
+
+	9. 类型运算符 -- 必须定义为类成员
+		operator T() const { }				// 类类型可转换为类型 T（不能是 void）；函数不能有返回值和参数
+		explicit operator T() const { }		// 在非条件表达式情况下，只能显示转换
+
+		注： 1. A 类定义了接受 B 类的转换构造， B 类定义了转换目标是 A 类的类型转换运算符，隐士转换会产生二义性
+			 2. 多个转换（可能是不同类），且重载优先级相同时，也会产生二义性
+			 3. 类型运算符和其他运算符，可能产生二义性
+
+2、标准库运算符类 #std <functional># -- 这些类都重载了 () ； op<T> var; var();	//执行类 T 中重载的运算符 op
+	算术
+		plus<T>
+		minus<T>
+		multiplies<T>
+		divides<T>
+		modulus<T>
+		negate<T>
+
+	关系
+		equal_to<T>
+		not_equal_to<T>
+		greater<T>
+		greater_equal<T>
+		less<T>
+		less_equal<T>
+
+	逻辑
+		logical_and<T>
+		logical_or<T>
+		logical_not<T>
+
+3、function	#std <functional>
+	构造
+		function<T> f;					// T 为调用对象的调用形式，如 void(int)
+		function<T> f(nullptr);
+		function<T> f(obj)				// f 中存储可调用对象 obj 的副本
+
+	成员类型
+		result_type						// 调用对象的返回类型
+
+	操作
+		f								// f 可调用时为真
+		f(args)							// 调用 f 中的调用对象，参数是 args
+
+	注：function 对象没法识别重载的函数

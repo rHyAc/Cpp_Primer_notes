@@ -1,0 +1,144 @@
+
+1、虚函数
+	class base
+	{
+		int base_var;
+	public:
+		base() : base_var(1) { }		// 默认、拷贝和移动构造函数不能使用 using 继承
+		base(int, double = 2) { }
+
+		/* 若基类虚函数使用默认实参，使用动态技术调用同名函数时，传入的仍是基类的默认实参，因而派生类的覆盖虚函数的默认实参最好与基类相同 */
+		virtual void vfunc() { }		/* 虚函数都要有定义，派生类不一定覆盖虚函数，除构造外的非静态成员函数都可以是虚函数
+													一个基类成员函数是虚函数，则在其派生类中仍是虚函数 */
+	};
+
+	class cls : public base				// class 默认 private 继承， struct 默认 public 继承
+	{
+		int var;
+	public:						
+		using base::base;				/* 继承基类构造，但继承后访问权限同基类（无论 using 放在 private 部分还是其他）； 
+										 * base:: 不可缺少；
+										 * 编译器将在派生类生产基类构造的代码，类似于
+												 /* 若类已有 cls(int i) { } ， 也不会产生冲突，此时 cls var(1) 会调用非继承的构造 */
+												cls(int i) : base(i) { }				// 派生类其他成员变量将默认初始化
+												cls(int i, double d) : base(i, d) { }	// 因为默认实参不能继承，所以生产两个构造
+										 */
+
+		cls() : base(), var(2) { }		/* 构造，其中 base 调用基类构造（没指定时基类采用默认初始化）；基类构造顺序为继承顺序，再到变量初始化；
+												只能构造直接基类 */
+		void vfunc() override;			/* override （仅在声明处，可有可无，用于通知编译器）在分号前；覆盖需要连返回类型都相同
+										  （而且返回类型即使在虚函数声明中也不能是不完全类（类自身除外）），除非
+												基类(首先声明虚函数的类）中的虚函数返回类型 B & / B * ，则派生类的虚函数可以是返回类型 D & / D * ，
+													前提是 D 到 B 类型转换是可访问的
+										   而且派生类只要名字、参数、 cv 、 ref 修饰与基类中虚函数都相同，则仍是虚函数（即使没有 virtual 修饰）
+										 */
+	}
+
+	class cls_f final					// 不能被继承
+	{
+		
+	};
+
+	class c : base
+	{
+		void vfunc() override final { }			// 只能对虚函数用 final ，表示该虚函数不能再被覆盖；两个关键字顺序可以互换，且均出现在声明处
+	};
+
+2、动态绑定 -- 使用引用或指针调用虚函数时发生，基类的引用和指针能接收派生类（要求基类可访问）
+		p->base::vfunc();						// 不进行动态绑定，直接使用基类函数
+		r.base::vfunc();
+
+3、访问控制
+					
+		继承方式：		public		protected		private
+	---------------------------------------------------------------
+	基	public		|	public		protected		private		派
+	类	protected	|	protected	protected		private		生
+		private		|	不可访问	不可访问		不可访问	类
+
+	1. 外部不能访问 protect ，派生类可继承成员
+	2. 改变继承成员的可访问性
+		class base
+		{
+		protected:
+			int prot;
+		public:
+			int pub;
+		};
+
+		class cls : private base				
+		{
+		protected
+			using base::pub;					// pub 变为 protected 成员
+		public:
+			using base::prot;					// prot 变为 public 成员
+		};
+
+	3. 继承方式影响派生类到基类的转换（基类的引用和指针能接收派生类）
+		1. 仅当 D public 继承 B ， 在相关类外 D 类能转换为 B 类
+		2. 任何继承方式，在 D（包括其友元）中 D 类能转换为 B 类
+		3. 仅 D public 或 protected 继承 B ， 在 D 的派生类（包括其友元）中 D 类能转换为 B 类
+
+4、抽象基类 -- 含有纯虚函数的类，不能创建该类的对象；其派生类要覆盖纯虚函数才不是抽象基类
+	class base
+	{
+	public:
+		virtual void pvfunc() = 0;				// 在声明处函数尾部有 = 0 即为纯虚函数，可以在类外有定义
+	};
+
+5、作用域
+	class base
+	{
+	public:
+		int i;
+		virtual void vfunc() { }
+		virtual void vf() { }
+		virtual void vf(int) { }
+	}
+
+	class cls : public base						// 派生类作用域嵌套在基类作用域中
+	{
+	public:
+		int i;
+		void func() { base::i = 1; }			// 通过作用域运算符访问隐藏基类成员
+		void vfunc(int) { }						// 覆盖，派生类中函数不重载其基类同名函数（因为分别位于内外作用域）
+		using base::vf;							// 把基类所有 vf 函数加入派生类作用域（只有 using 构造的时候会生成代码，这里不会）
+		void vf(int) override { }				// 只覆盖 vf(int) ，仍可以使用基类的 vf()
+	};
+
+6、虚析构函数
+	class base
+	{
+	public:
+		virtual ~base() { }						// 因为可能使用动态绑定销毁类，所以需要虚析构函数
+	};
+
+	class cls : public base
+	{
+	public:
+		~cls() override { }
+	};
+
+7、继承中的拷贝控制与构造
+	1. 基类的默认构造、拷贝赋值构造、拷贝赋值运算符或析构是删除或不可访问，则派生类对应的也是删除的
+	2. 基类的析构是删除或不可访问，派生类的合成默认、拷贝和移动构造是删除的
+
+	class base
+	{
+																			// 合成拷贝构造
+																			// 合成拷贝赋值
+	};
+
+	class cls : public base
+	{
+	public:
+		cls(const cls & c) : base(c) { }									/* 基类拷贝构造时传派生类对象即可，即使基类拷贝构造是合成的也合法
+																					注意：1. 若显示定义的构造不显式调用基类的构造，将自动基类默认构造 
+																						  2. 而合成的构造则调用基类对应构造
+																			 */
+		cls & operator=(const cls & c) { base::operator=(c); ... }			/* 	注：1. 显示定义的赋值运算符不隐式调用基类的赋值运算符
+																					2. 合成的会调用对应基类赋值运算符 
+																			 */
+	};
+
+注：using 不改变成员属性（如 constexpr 、 explicit 等）

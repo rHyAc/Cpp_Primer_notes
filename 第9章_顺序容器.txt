@@ -1,0 +1,240 @@
+
+1、顺序容器
+	vector			// 可变大小数组
+	array			// 固定大小数组
+	string			// 类似处理字符的 vector
+	deque			// 双端队列
+	list			// 双向链表
+	forware_list	// 单向链表，没 size()
+
+	1. 容器内部类型
+		iterator
+		const_iterator
+		size_type					// 无符号整数，足够保存此容器大小
+		difference_type				// 带符号类型，足够保存两迭代器距离
+		value_type					// 元素类型
+		reference					// 元素左值类型，与 value_type & 相同
+		const_reference				// const value_type &
+
+	2. 构造
+		C c;
+		C c1(c2);					// 构造 c2 的拷贝 c1 , c1 与 c2 类型相同（对于 array ，还要去两种大小相等）
+		C c(b, e);					/* 将迭代器 b 和 e 指定的范围元素来构造 c （不适用于 array）
+											C 为 C1<string> , b 和 e 可以是 C2<const char*> 的迭代器（容器 C2 元素类型可以转为容器 C1 元素类型即可 */
+		C c{e, f, g}				// 对于 array ， 列表内元素个数要 <= array 大小；< 时，多出来部分进行值初始化
+
+		注：顺序容器（不包括 array）支持下列
+		C c_seq(n);					// explicit ；n 个 值初始化的元素（不适用于 string） 
+		C c_seq(n, t);				// t 复制 n 个装入容器
+
+	3. 赋值和 swap （赋值、 assign 会导致等号左边容器“指向元素的”迭代器、引用和指针失效；而对于容器， swap 不会使“指向元素的”迭代器、引用和指针失效）
+		c1 = c2;					// 赋值后连大小也一样
+		c = {e, f, g}				
+		c1.swap(c2)					// 交换 c1 和 c2 元素，等价于 swap(c1, c2) #std <algorithm> ；实际不会拷贝元素（array 除外），只交换两个容器的内部数据结构
+
+		注：顺序容器（不包括 array）支持下列
+		c.assign(n, t)				// c 内元素替换为n 个 t 
+		c.assign(b, e)
+		c.assign(il)				// il 类型为初始化列表
+
+	4. 增/删元素（不适用与 array）
+
+
+		c.insert(p, t)				// 迭代器 p 指向的元素前，增添值为 t 元素，返回指向新添加元素的迭代器
+		c.emplace(p, args)			// 迭代器 p 指向的元素前，增添使用 args 构造的元素，返回指向新添加元素的迭代器
+		c.insert(p, n, t)			// 迭代器 p 指向的元素前，增添 n 个值 t 元素，返回指向第一个新添加元素的迭代器，若 n 为 0 返回 p
+		c.insert(p, b, e)			// 将指向它处的迭代器 b 和 e 指定范围内元素复制到 p 指向元素之前，返回指向第一个新元素迭代器，若范围为空，返回 p
+		c.insert(p, il)				// il 为初始化列表类型
+
+		注：forward_list 有自己专有的 insert 和 emplace
+
+		c.erase(p)					// p 为迭代器，返回指向删除元素后元素的迭代器
+		c.erase(b, e)				
+
+		注：forward_list 有自己专有的 erase
+
+		c.clear()					// 删除所有元素，返回 void
+		
+
+		注：顺序容器（不包括 array）支持下列
+		c.push_back(t)				// c 尾部增添值为 t 元素（copy），返回 void ； forward_list 不支持				
+		c.emplace_back(args)		// c 尾部增添使用 args 构造的元素（construct），返回 void ； forward_list 不支持
+
+		c.push_front(t)				// vector 和 string 不支持
+		c.emplace_front(args)		// vector 和 string 不支持
+		c.pop_back()				// 删尾，返回 void ；若 c 空，则行为未定义 ； forward_list 不支持	
+		c.pop_front()				// vector 和 string 不支持
+
+	5. 关系运算符
+		==, !=						
+		<, <=, >, >=				// 不适用与无序关联容器；而且元素也要支持该运算；无序容器不支持
+
+	6. 迭代器
+		c.begin(), c.end()
+		c.cbegin(), c.cend()
+
+	7. 反向容器成员（不适用与 forward_list）
+		类型
+			reverse_iterator
+			const reverse_iterator
+
+		迭代器
+			c.rbegin(), c.rend()
+			c.crbegin(), c.crend()	// crbegin() 返回指向最后一个元素， crend() 返回为头前指针
+
+			riter.base()			// 返回指向 (riter + 1) 元素的普通迭代器
+
+	8. 访问（若为 const 对象，返回 const 引用）（仅顺序容器）
+		c.begin()					// 若 c 为空，则行为未定义
+		c.back()					// 返回最后一个元素引用， forward_list 不支持
+
+		c[n]						// string 、 vector 、 deque 、 array 支持；越界，则行为未定义
+		c.at(n)						// string 、 vector 、 deque 、 array 支持，越界抛出 out_of_range 异常，安全
+
+	9. 大小
+		c.size()					// 不适用于 forward_list
+		c.max_size()				// c 可保存的最大元素数目
+		c.empty()				
+
+	10. 改变大小（进顺序容器支持）
+		c.resize(n)					// n < c.size() ， 多出来的元素被丢弃；若添加新元素，值初始化
+		c.resize(n, t)				// 若添加新元素，值为 t
+
+	11. 存储管理
+		c.capacity()				// 不重分配下， c 可以保存多少元素；适用于 vector 和 string
+		c.reserve(n)				// 分配至少能容纳 n 个元素的空间；适用于 vector 和 string
+		c.shrink_to_fit()			// 将 capacity 减少为 size （不一定实现）；适用于 vector 、 string 和 deque
+
+
+		注：缩小容器，指向被删除元素的迭代器、引用指针失效
+
+2、array #std <array># （指针、引用和迭代器绑定的下标保持不变）
+	array<T, n> arr;			// n 个类型为 T 的值初始化元素
+	array<T,n>::size_type		// 范围类内成员时不能缺少 n
+	
+	arr1.swap(arr2)				// arr2 与 arr1 同类型（即 T 和 n 相同）；会真正地交换元素
+
+3、forward_list #std <forward_list>#
+	lst.before_begin()			// 返回首前迭代器
+	lst.cbefore_begin()
+
+	lst.insert_after(p, t)		// 在迭代器 p 后的位置插入，返回指向最好插入元素的迭代器
+	lst.insert_after(p, n, t)
+	lst.insert_after(p, b, e)
+	lst.insert_after(p, il)
+
+	lst.emplace_after(p, args)
+
+	lst.erase_after(p)
+	lst.erase_after(b, e)		// 删 (b, e]
+
+	lst.sort()							
+	lst.sort(cmp)
+
+	lst.reverse()
+
+	lst.splice_after(args)
+		(p, lst2)				// p 后插入 lst2 元素，并删除 lst2
+		(p1, lst2, p2)
+		(p1, lst2, b2, e2)
+
+	/* 下列操作与公共操作不同，会改变容器大小 */
+		lst.merge(lst2)			// 要求 lst 与 lst2 有序，合并后 lst2 为空
+		lst.merge(lst2, cmp)	// 二次元谓词 cmp 代替 <
+
+		lst.remove(val)			// 调用 erase 删除
+		lst.remove_if(pred)
+
+		lst.unique()			// 调用 erase 删除
+		lst.unique(pred)
+
+
+
+4、list #std <list>#
+	lst.sort()							
+	lst.sort(cmp)
+
+	lst.reverse()
+
+	lst.splice_after(args)
+		(p, lst2)				// p 后插入 lst2 元素，并删除 lst2
+		(p1, lst2, p2)
+		(p1, lst2, b2, e2)
+
+	/* 下列操作与公共操作不同，会改变容器大小 */
+		lst.merge(lst2)			// 要求 lst 与 lst2 有序，合并后 lst2 为空
+		lst.merge(lst2, cmp)	// 二次元谓词 cmp 代替 <
+
+		lst.remove(val)			// 调用 erase 删除
+		lst.remove_if(pred)
+
+		lst.unique()			// 调用 erase 删除
+		lst.unique(pred)
+
+
+5、迭代器失效
+	增：
+		vector 和 string ：若重分配则所以迭代器、指针和引用失效；否则在指向插入点后的迭代器、指针和引用有效。
+		deque ：若在双端插入，所以迭代器无限，但不影响元素指针和引用；否则迭代器、指针和引用无效
+		list 、 forward_list ：迭代器、指针和容器有效
+	删：
+		vector 和 string ：删除点后的迭代器、指针和引用失效
+		deque ： 若删头，迭代器、指针和引用有效；若删尾，尾后迭代器无效；删其他，迭代器、指针和引用失效
+		list 、 forward_list ：迭代器、指针和容器有效
+
+	注： vector 和 deque assign 会使使尾后迭代器无效（string？？）
+
+
+6、顺序容器适配器
+	stack
+	queue
+	priority_queue			// （优先级）大根堆，要求随机访问
+
+		1. 容器内部类型
+			size_type					// 无符号整数，足够保存此容器大小
+			difference_type				// 带符号类型，足够保存两迭代器距离
+			value_type					// 元素类型
+
+		2. 构造
+			A a;
+			A a(c);						// 拷贝容器 c
+
+		3. 关系运算符（返回底层容器比较结果）
+			==, !=						
+			<, <=, >, >=				
+
+		4. 大小
+			c.size()					
+			c.empty()				
+
+		5. 交换（同类型，包括底层容器）
+			a.swap(b)
+			swap(a, b)
+			
+7、stack #std <stack>#
+	默认 deque 实现，也可以是 list 或 vector
+		s.pop()
+		s.push(item)
+		s.emplace(args)						
+		s.top							// 返回栈顶元素
+
+		stack<string, vector<string>> str_stk(str_vec);		// 将底层容器置为 vector ， 元素类型为 string， 使用 str_vec(vecotr<string>) 构造
+
+8、queue #std <queue>#
+	默认 deque 实现，也可以是 list 
+		q.pop()
+		q.push(item)
+		q.emplace(args)
+		q.front()
+		q.back()
+
+9、priority_queue #std <queue>#
+	默认 deque 实现，也可以是 vector
+		q.pop()
+		q.push()
+		q.emplace(args)
+		q.front()
+		q.top()							// 返回优先级最高元素
+
+注：容器元素是拷贝
+	

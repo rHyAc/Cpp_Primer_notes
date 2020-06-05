@@ -1,0 +1,169 @@
+
+注：执行完 catch 后，会执行 catch 块后代码
+	析构函数一般不抛出异常，就是抛也应该抛自己能处理
+
+1、异常对象 
+	throw exp;					/* 根据 exp 对异常对象进行拷贝初始化
+										若 exp 是类类型，要求可访问析构和有一个可访问拷贝或移动构造
+								 */
+
+2、异常捕获
+	catch 块类似函数（但形参不能是右值引用且不能为空），catch 同类型异常（但派生可被基类 catch 或非常量被常量 catch）
+
+	try { throw unknown_type(); }
+	catch (...) { }				// 可捕获一切类型异常
+
+
+3、重新抛出
+	try { ... }
+	catch (T) { throw; }		// 该语句仅能出现在 catch 中火 catch 中直接或间接调用的函数
+	
+4、异常构造、析构
+	struct cls
+	{
+		int i;
+		cls() try : i(0)		// try 要在初始化列表前，析构也应放这里
+		{
+		
+		}
+		catch (...)
+		{
+		
+		}
+	};
+
+	注：若构造传参数时发生异常，是类内无法捕获的，这需要调用者 try 、 catch
+
+5、noexcept 
+
+	noexcept 说明符 -- 告知编译器函数不抛出异常到函数外部	
+		1. noexcept 同 noexcept(true)
+		2. 函数声明和定义都需要 noexcept，属于函数类型（可以隐式转换到没有 noexcept），但不属于函数标记（如同 返回值）
+		3. noexcept 需在 const 后， override 和 final 前
+		4. noexcept 函数可抛出异常到函数外部，但抛出后直接调用 std::terminate 
+		5. 基类虚函数 noexcept ，派生类必须 noexcept ；基类虚函数 noexcept(false) ， 派生随意
+		6. 类的合成成员只有涉及的操作均不抛出异常才是 noexcept
+
+	noexcept 运算符
+		noexcept(exp)						// 返回 bool 类右值常量表达式，表示 exp 是否抛出异常
+
+	noexcpet 运算符、说明符混用
+		void f() noexcept(noexcept(g()));	// 函数 f 和 g 异常说明一致
+		
+
+6、名空间
+	/* 头文件 */
+	namespace space_name					// 名空间只能在全局或其他名空间定义和打开，只能存放全局的内容
+	{
+		void func();
+		void f();
+	}
+
+	/* 源文件 */
+	namespace space_name					// space_name 已在头文件定义，此处打开该名空间
+	{
+		void func() { }
+	}
+
+	void space_name::f() { }				// 外层空间外定义
+
+
+	注：全局名空间是匿名的，使用时： ::member
+
+7、内联名空间 -- 内联到外层空间，仅使用外层空间名即可访问内联名空间成员
+
+	inline namespace incli_space			//仅在名空间定义出出现 inline 即可
+	{
+	
+	}
+
+8、未命名名空间 -- 可用于代替 static 全局实体
+	namespace								// 不能跨文件，即使在头文件定义，则每个 include 的文件中未命名名空间也是独立的
+	{
+		int i;								// 成员通过外层空间名即可访问
+	}
+
+9、名空间别名
+	namespace space_alias = space_name 
+
+10、using	
+	using 声明，如 using std::cout
+		1. 使被声明实体（同名的所有实体）和声明所在作用域一致，
+		2. 可以出现在全局、局部、名空间作用域，在类作用域使用时只能指向基类成员
+	
+	using 指示，如 using namespace std
+		1. 将名空间实体提升到包含该名空间和 using 指示的最近作用域，若最近作用域已存在同标记实体，仍允许（但使用时所以的实体都要指出具体名空间）
+		2. 不能出现在类作用域
+
+11、实参指出名空间
+
+	1. 给函数传递类类型对象（包括对象指针和引用）时，会检查其所属名空间，可从名空间内查找函数
+			如： std::cout << "emmm";		// 使用 std 内的 operator<< 函数并没有使用空间名
+			又如：
+				namespace space_name
+				{
+					class base { }
+					void func(const base &) { }
+				}
+
+				class cls : public space_name::base { }
+
+				int main()
+				{
+					cls a;
+					func(a);					// OK ，对于继承还会从基类空间找
+					return 0;
+				}
+
+	2. 一个未声明的类或函数第一次出现在友元声明中，则该类或函数被视为类最近外层空间成员（即被认为已经在该空间内声明）
+			namespace space_name
+			{
+				class cls { friend void func(const cls &); }
+			}
+
+			int main()
+			{
+				space_name::cls a;
+				func(a);					// 结合 1 和 2 可以成功调用 func
+				return 0;
+			}
+
+			void space_name::func(const space_name:: cls &) { }		/* 若不是因为在 space_name::cls 中有友元声明，
+																			该函数无法在名空间中未声明的前提下在名空间为进行定义 */
+
+12、多继承
+	1. 继承多个基类的构造，若这些构造的参数一样（除空参数），会无法调用
+	2. 多个基类有同名函数，调用时需使用域限定符号，否则无法调用；
+			即使同名函数参数列表不同
+			即使同名函数访问权限不同（如：有一个同名函数是 public 其他 private）
+			即使同名函数在不同继承分支的不同一层次（如：基类 A 的基类 Z 和基类 B 有同名函数）
+
+13、虚继承 -- 解决通过多个基类分别继承同一个间接基类（派生类有多个独立但相同的间接基类）的问题
+
+	class base0 { };
+	class base1 : public virtual base0				// virtual 、 public 位置可交换
+	{ 
+		base1() : base0() { } 
+	};			
+	class base2 : virtual public base0 
+	{ 
+		base2() : base0() { } 
+	};
+	class cls : public base1, public base2			// 只包含一份 base0 部分
+	{ 
+		base3() : base0(), base1(), base2() { }		// 若此处不显示调用 base0 构造，将隐式调用 base0 默认构造
+	};		
+															
+		base0				     base0					 |--------- base0 --------|	
+		  |						   |					 |						  |
+		  |-> base1		   base2 <-|					 |-> base1		  base2 <-|
+		        | --> cls <--|								   | --> cls <--|
+
+					非虚继承										虚继承
+
+	注：基类 A 和基类 B 均虚继承基类 Z ，且基类 B 覆盖了基类 Z 成员函数，而基类 A 没覆盖，
+			可不使用域限定符访问该函数，将调用基类 B 的覆盖版本
+			         
+	虚继承的构造
+		虚基类由最底层的派生类初始化，即 base0 由 cls 的构造初始化，
+			且先按继承顺序初始化虚基类再到直接基类

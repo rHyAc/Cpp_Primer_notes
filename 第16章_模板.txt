@@ -1,0 +1,218 @@
+
+0、模板 -- 仅实例化才生产代码，在实例化前模板定义一定要可见；放在头文件
+
+	模板的参数类似于函数参数，有相似的作用域，可以省略名字，可以有默认模板实参，
+
+	注：在模板块内，通过 :: 访问类型成员需要在加 typename （不加则视为成员变量），如
+		template <typename T>
+		class cls { typedef typename T::type new_type; }
+
+1、函数模板
+	1. 类型模板
+				 /* 模板参数列表，不能为空
+						且每个类型参数前必须使用关键字 class 或 typename （两着等价）
+				  */
+		template <tyepname T, class U>
+		U func(T var) { }			// 定义
+
+		template <typename T>
+		T func();					// 声明
+
+		func(1);					// 调用，与普通函数一样；推导同 auto ？
+		func<double>(1);			// 指定 T 为 double ；可以只指定模板参数列表中连续的前几个模板参数；
+									//		特别是对于类似 template <typename T> T func(); ，T 无法推倒时只能显示模板实参 
+
+		void (*p)(int) = func;		// 赋值到函数指针实例化
+		p(1);						// 调用
+
+	2. 非类型模板
+				/* T1 和 T2 为类型，可以是整形（实参需是常量表达式），指针和引用（指向和引用静态变量或 nullptr）
+						N 和 M 作在函数中常量
+				 */
+		template<T1 N, T2 M>
+		int func() { }
+
+		例：
+			template<unsigned N, unsigned M>
+			void func(const char (&)[N], const char (&)[M]) { }
+
+			func("h", "em");		// 调用，此时 N 为 2 ， M 为 3
+
+2、类模板 
+	template <typeename T = int>
+	class cls						// 定义
+	{
+	public:
+		static int i;
+
+		cls func1() { ... }			// 在模板类作用域内使用 cls 等价于 cls<T>
+		cls func2();
+
+		friend T;					// 模板参数类型作友元
+	};				
+	
+	template <typename T>
+	int cls<T>::i = 1;				// 模板静态成员变量初始化（全局处）
+
+	template <typename T>			// 在类外定义的成员函数需要加 template
+	cls<T> cls<T>::func2()			
+	{ 
+		cls a;						// 在 :: 后均为模板类作用域内
+		...
+	}
+	
+	cls<> var;						// 使用默认模板实参
+	cls<long> var;					// 创建类变量
+
+	模板别名
+		template <typename T> 
+		using twin = pair<T, double>
+
+		twin<int> var;				// var 类型为 pair<int, double>
+
+	注：类模板的成员只有程序用到时才实例化
+
+3、成员模板（不能是虚函数）
+	普通类
+		class cls
+		{
+		public:
+			template <typename T> 
+			void func(T);			// 声明
+		};
+
+		template <typename T>
+		void cls::func(T) { }			// 定义
+
+		cls a;
+		int b;
+		a.func(b);					// 此时 T 为 int
+
+	类模板
+		template <typename T>
+		class cls
+		{
+			template <typename U>
+			cls(U);					// 声明
+		};
+			
+		template <typename T>		// 类 template
+		template <typename U>		// 成员函数 template
+		cls<T>::cls(U) { }			// 定义
+
+4、显示实例化 -- 避免实例化相同模板
+
+	/* 在本文件实例化模板 */
+	template class cls<int>;		// 会实例化所以成员
+	template void func();
+
+	/* 使用 extern 表面在该模板已在其他文件实例化，本文件不实例化 */
+	extern class cls<int>;
+	extern void func();
+
+
+5、类型操作 #std <type_traits>#
+	
+	mod<T> , 其中 mod 如下	| 若 T 为					| 则 mod<T>::type (public 类型成员)为
+	-----------------------------------------------------------------------------------------
+	remove_reference		| X & 或 X &&				| X
+							| 否则						| T
+	-----------------------------------------------------------------------------------------
+	add_lvalue_reference	| X &						| T
+							| X &&						| X &
+							| 否则						| T &
+	-----------------------------------------------------------------------------------------
+	add_rvalue_reference	| X & 或 X &&				| X 
+							| 否则						| T &&
+	-----------------------------------------------------------------------------------------
+	remove_pointer			| X *						| X
+							| 否则						| T
+	-----------------------------------------------------------------------------------------
+	add_pointer				| X & 或 X &&				| X *
+							| 否则						| T *
+	-----------------------------------------------------------------------------------------
+	add_const				| X & 、 const X 或 函数	| T
+							| 否则						| const T
+	-----------------------------------------------------------------------------------------
+	make_signed				| unsigned X				| X
+							| 否则						| T
+	-----------------------------------------------------------------------------------------
+	make_unsigned			| 带符号类型				| unsigned X
+							| 否则						| T
+	-----------------------------------------------------------------------------------------
+	remove_extent			| X[n]						| X
+							| 否则						| T
+	-----------------------------------------------------------------------------------------
+	remove_all_extents		| X[n1][n2]...				| X
+							| 否则						| T
+
+6、forward #std <utility>#
+	template <typename T> 
+	void func(T &&) 				// 因引用折叠，函数形参可为左值引用或右值引用，同时因为引用可以保留 const
+	{
+		f(forward<T>(var))			/* 若 T 为左值引用，则 forward 返回 var 的左值引用
+									   若 T 为非引用类型，则 forward 将 var 转为右值，从而使用右值调用 f() */
+	}
+
+7、模板函数重载
+	模板函数可以与非模板函数重载,选择时
+		其他情况一样时，非模板函数优于模板
+		其他情况一样时，多个模板中选择最特例化的模板
+
+8、可变参数模板
+							
+	template <typename T, typename ... Args>		// Args 为模板参数包，表示零个或多个模板类型参数
+	void func(T t, Args ... rest)					// rest 为函数参数包，表示零个或多个函数参数
+	{
+		cout << sizeof...(Args) << endl;			// 类型参数数目
+		cout << sizeof...(rest) << endl;			// 函数参数数目
+	}
+
+
+	递归访问可变参数
+	templaet <typename T>
+	void func(T t)
+	{
+		cout << t << endl;
+	}
+
+	templaet <typename T, typename ... Args>
+	void func(T t, Args ... rest)
+	{
+		cout << t << endl;
+		return func(exp(rest)...);					/* 递归输出参数，最后会访问第一个 func 模板实例化的函数（更特例化）
+															相当于调用 func(exp(rest1), exp(rest2), ...) , 其中 exp 为任意表达式 */
+	}	
+
+10、模板特例化（不使用普通函数是为了不影响函数匹配）
+	函数模板特例化
+		template <typename T>
+		void func(T) { }
+
+		template <>									// 特例化， <> 留空
+		void func(int) { }
+				
+	类模板特例化，如：
+		namespace std								// 打开名空间 std							
+		{
+			template <>
+			struct hash<cls>
+			{ };
+		}											// 关闭 std
+
+		namespace std														
+		{
+			template <typename T>
+			struct hash<T &>						// 部分特例化，所以引用使用该特例
+			{ };
+		}							
+		
+		对于模板类，可只特例化某一成员函数
+		template <typename T>
+		class cls
+		{
+			void func(T) { }
+		};
+
+		template <>
+		void cls<int>::func(int) { }

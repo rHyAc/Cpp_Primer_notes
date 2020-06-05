@@ -1,0 +1,82 @@
+
+1、关联容器
+	有序 -- 可指定关键字比较方式 C<T, decltype(cmp) *> c(cmp);	// 二元谓词 cmp 代替 < 
+		map					// 关键字不重复
+		set
+		multimap			// 可重复
+		multiset
+
+	无序 -- 用哈希函数（std 提供的只支持基本类型，string，智能指针等）组织，需要 == 
+		unordered_map
+		unordered_set
+		unordered_multimap
+		unordered_multiset
+
+
+	类型
+		key_type			// key 的类型
+		mapped_type			// value 的类型
+		value_type			// 对于 set 系列，与 key_type 相同
+							// 对于 map 系列，为 pair<const key_type, mapped_type>
+
+	操作
+		c.insert(v)			// v 是 value_type 类型对象；若不能含重复元素，返回一个 pair 类型， 
+		c.emplace(args)		//		first 为指向元素迭代器，second 为 bool 类，若重复（insert 不进行插入）则 false；若能仅返回迭代器
+
+		c.erase(k)			// 返回删除个数
+
+		c.find(k)
+		c.count(k)
+		
+		c.equal_range(k)	// 返回 pair ，表示关键字等于 key 范围，若不存在 pair 两成员均为 c.end()
+		c.lower_bound(k)	// 返回指向第一个不少于关键字 k 的元素的迭代器；仅用于有序
+		c.upper_bound(k)	// 返回指向第一个大于 k 的元素的迭代器；仅用于有序
+
+2、map #std <map>#
+	构造
+		map<kT, vT> c{{k1, v1}, {k2, v2}};
+
+	操作
+		c[k]					// 若不存在则插入值初始化元素 
+		c.at(k)
+
+	每个元素均为 pair类
+		构造
+			pair<kT, vT> pr;
+			pair<kT, vT> pr{k, v};		//等价于 pair<kT, vT> pr(k, v);
+
+		操作
+			pr.first			// key ，注意 first 后没括号
+			pr.second			// value
+
+			== 、 !=
+			< 、 <= 、 > 、 >=
+
+			make_pair(k, v)					// 返回 k 和 v 初始化的 pair	
+
+3、set #std <set>#
+	set 的迭代器都是 const 的
+
+4、无序容器
+	构造
+		C <T, decltype(hash_func) *, decltype(eq_func) *> c(n, hash_func, eq_func);	// 构造一个 n 个桶，指定 hash 和 ==
+
+	操作
+		桶接口
+			c.bucket_count()			// 返回桶数
+			c.max_bucket_counnt()		// 返回最大桶数
+			c.bucket_size(n)			// 返回第 n 个桶元素数目
+			c.bucket(k)					// 返回关键字 k 的元素在哪个桶
+
+		桶迭代
+			local_iterator				// 桶迭代器类型
+			const_local_iterator
+
+			c.begin(n), c.end(n)		// 对于桶 n 
+			c.cbegin(n), c.dend(n)
+
+		哈希策略
+			c.load_factor()				// 返回每个桶的平均元素个数，类型为 float
+			c.max_load_factor()
+			c.rehash(n)					// 重新存储，使 bucket_count >= n && bucket_count > size / max_load_factor
+			c.reserve(n)				// 重新存储，使 c 可保持 n 个元素且不必 rehash

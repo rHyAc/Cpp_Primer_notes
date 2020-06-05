@@ -1,0 +1,164 @@
+
+1、const 形参
+	void func(int * i) { ... }					// 与含底层 const 形参的函数重载时，非 const 实参优先调用非 const 形参的函数
+	//void func(int * const i) { ... }			非法，不能重载，顶层 const 被忽略
+	void func(const int * i) { ... }			// 底层 const 不会被忽略，可以重载
+
+
+2、main 函数（不能重载）
+	
+	prg.c:
+		int main(int argc, int * argv[]) 
+		{
+			... 
+			if (...)
+				return EXIT_SUCCESS;			// 在 <cstdlib> 中，可以使返回值与机器无关
+			else if (...)
+				return EXIT_FAILURE;
+		}
+
+	输入命令：
+		prg -d file
+
+	argv[0] 为 "prg"				// 程序名
+	argv[1] 为 "-d"					// 第一个参数
+	argv[2] 为 "file"
+
+3、initializer_list #std <initializer_list>#
+	用于同类型参数的变参函数
+
+	初始化
+		initializer_list<T> lst					// 默认初始化
+		initializer_list<T> lst{a, b, c}		// a, b, c 为要传给函数的 T 类型参数
+	
+	操作
+		lst2(lst)								// 等价于 lst2 = lst ，不会拷贝 lst 的元素列表，lst 和 lst2 共享元素列表
+		lst.size()
+		lst.begin()
+		lst.end()								// 指向尾后元素
+
+4、列表初始化返回值
+	vector<T> func()
+	{
+		return {a, b, c}						// OK
+	}
+
+5、尾置返回类型
+	auto func(int * i) -> int (*)[10];
+	int (* func(int * i))[10];					// 两种函数声明等价。复杂返回类型，尾置更清晰
+
+	auto func() -> decltype(a)					// 合法			
+	{ 
+		int a = 1;
+		long b = 2;
+		if(1)
+			return a;
+		return b;
+	}
+
+	/*
+		decltype(a)	func()						a 尚未定义，decltype(a) 不能用
+		{ 
+			int a = 1;
+			long b = 2;
+			if(1)
+				return a;
+			return b;
+		}
+	*/
+	
+
+
+6、重载
+	函数匹配规则：
+		1. 形参与实参匹配度（有高到底排列）
+			1. 类型相同，数组转指针，增删顶层 const
+			2. const 转换
+				const string & func(const string &);
+				string & func(string &);
+
+				string a;
+				func(a);				// func(string &)
+			3. 类型提升	
+				void func(short);
+				void func(int);
+
+				char a = 0;
+				short s = 1;
+				func(a);				// func(int) -- 因为提升优于算术类型转换
+				func(s);				// func(short)
+
+			4. 算术类型转换
+				void func(double);
+				void func(long);
+
+				short s = 1;
+				//func(s);			非法，因为都是类型转换，匹配度相同
+
+			5. 类类型转换
+		2. 所选函数的每个实参匹配都不劣于其他函数
+		3. 至少有一个实参匹配优于其他函数
+		4. 选不出时报错
+	
+	const string & func(const string & str) { ... }				// 实现当参数类型为 const string & 时 返回 const string &
+	string & func(string & str)									// 而当参数类型为 string & 时返回 string &
+	{
+		auto & r = func(const_cast<const string &>(str));
+		return const_cast<string &>(r);
+	}
+
+
+	void func(int);
+	void func(const string &);
+	int main()
+	{
+		void func(double);						// 覆盖外部的 func() 声明，不重载
+		func(1);								// 调用 void func(double) 而不是 void func(int)
+		//func("emmm");							非法， "emmm" 无法转为 double 型
+	}
+
+7、默认实参
+	一旦一个形参赋予默认值，其右的形参均为默认值
+
+	通常在函数声明中指定默认实参
+	void func(int, double = 2);
+	//void func(int, double = 2)			非法
+	//void func(int, double = 3);			非法，不同于普通函数可以重复声明，在作用域内不可修改或重复声明
+	void func(int = 1, double);				// 追加 int 的默认实参，实际上相当于 void func(int = 1, double = 2);
+	//void func(int = 1, double = 2)		非法
+
+	除了局部变量，只有表达式类型匹配就可以做默认实参
+	void func(int = func2(), double = global_var);
+
+8、内联函数
+	1. 仅需在函数定义或声明其中之一，返回值前加 inline 即可
+	2. 一般定义在头文件中
+
+9、constexpr 函数（尽量在编译时求值）
+	1.要求
+		1. 参数类型和返回值类型必须是常量表达式
+		2. 函数内部不能定义非字面值类型，static ，thread_local ，未初始化变量
+		3. 不能有 goto 语句
+	2. 隐式内联
+	3. constexpr 函数不一定返回常量表达式，如通过 func(i) 调用函数，参数 i 为变量，则不会返回常量表达式
+	4. 定义和声明都需要 constexpr
+	5. 一般定义在头文件中
+
+10、调试
+
+	assert(exp)			// 在 <cassert> 中， exp 为假时，输出信息并终止程序
+
+	NDEBUG				// 宏定义，定义后 assert() 无效
+
+	__func__			// 函数名宏
+	__FILE__			// 文件名宏
+	__LINE__			// 当前行宏
+	__TIME__			// 编译时间宏
+	__DATA__			// 编译日期宏
+
+注：
+	// 数组作参数，函数遍历数组，但限制了长度
+	void func(int (& arr)[10])
+	{
+		for (auto a : arr) { ... }
+	}

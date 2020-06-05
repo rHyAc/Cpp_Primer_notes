@@ -1,0 +1,38 @@
+
+1、左右值
+	C++ 中，左值强调对象身份（内存位置），右值强调对象的值（内容）
+		++a			// C++ 中为左值
+		a->mem		// 箭头运算符的结果为左值
+		a.men		// a 为左值结果为左值，a 为右值结果为右值
+
+2、初始化
+	列表初始化
+		对于任何类型，列表都可以为空，此时使用默认初始化
+
+3、sizeof 返回的是常量表达式
+
+4、隐式转换
+	type * 可隐式转换为 void * ，但反过来不能
+	type * 可隐式转换为 const void * ，但反过来不能
+
+5、强制转换
+	static_cast<T>(var) 
+		double d
+		void * p = &d;
+		double * dp = static_cast<double *>(p);
+
+		const char * c = "emmm";
+		static<string>(c)								// OK
+
+		int i = 1;
+		static_cast<int &&>(i);							// 左值转为右值，move 中用到类似方式
+
+	const_cast<T>(var) -- 只用于消除底层 const
+		const char * cc = "emmm";
+		char * c = const_cast<char *>(cc);
+
+	reinterpret_cast<T>(var) -- 重新解释二进制
+		float f = 1, * fp = &f;
+		int * ip = reinterpret_cast<int *>(fp);			// 这里不能用 static_cast<int *>
+
+注： bool 类型也会整形提升

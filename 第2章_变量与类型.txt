@@ -1,0 +1,189 @@
+1、类型
+	long double
+	unsigned 为 unsigned int
+	short, int, long, long long 有符；
+		但 char 不是 signed char ，也不是 unsigned char ， 实际表现形式可为有符或无符 
+
+	bool -> num：
+		true -> 1
+		false -> 0
+	num -> bool：
+		not 0 -> true
+		0 -> false
+
+	无符号类型赋值超范围，截断
+	有符合 ~~           ，无定义行为
+
+
+	字面量：
+		字符型：char型，但 C 语言中 sizeof('a') 的结果为 4 （gcc 9 ， clang 8 ）
+		整型：
+			十进制：能容纳前提下，为 int, long, long long 中最小那个
+			八、十六进制：~~ 为 int, unsigned int, long, unsigned long, long long, unsigned long long 最小那个 
+		浮点型：
+			默认为double，如 0. 、 0e0（e后为指数）、 .01  
+
+		后缀：
+			字符型： 
+					 u     -- Unicode16(char16_t)
+					 U     -- Unicode32(char32_t)
+					 u8    -- UTF-8 char 型字符串
+					 L     -- wchar_t
+			整型：（最小匹配）
+					 u/U   -- unsigned -- 无符号，可以混用，如 ul
+					 l/L   -- long
+					 ll/LL -- long long
+			浮点型：
+					f/F    -- float
+					l/L    -- long double
+
+2、转义符号
+	'\' 后可跟最多可跟 3 个八进制
+	‘\x' 后可跟多个十六进制
+
+3、变量
+	初始化
+		int a = 0;
+		int a(0);
+		int a = {0};	// 对于内置类型变量，使用列表初始化时：
+		int a{0};		//		若初始值存在丢失信息的风险，则编译器会报错，如浮点型与整型之间的初始赋值 
+
+	作用域
+		作用域能彼此包含，因而有内层作用域与外层作用域之分。内存作用域中可覆盖外层定义的变量。
+
+4、空指针
+	int * p = nullptr;
+	int * p = 0;
+	int * p = NULL;			// include <cstdlib>
+
+	C++ 中，除字面量 0 外，一切整形不强制转型下不能赋值给指针
+
+5、引用
+	只能在定义时与对象进行绑定
+
+	int * p = 0;
+	int * & p1 = p;			// 指针的引用
+
+6、const （编译时，将 const 常量替换为对应值）（原理与宏定义相似？）
+	C++ 中，全局 const 常量（在 rodata ）默认为本文件有效
+		若需要全局有效的 const 常量
+			定义文件： extern const int var = 1; // 若无 extern 外部文件编译报错
+			外部文件： extern const int var;
+
+		若需要全局变量在一个文件内不可修改
+			定义文件： int var = 1; 
+			外部文件： extern const int var;
+
+	int var = 1;
+	const int & r = var;	// r 是引用，引用的是 const int 类型变量，所以不能 r = 2;
+
+	const int & r = 2;		// OK， 相当于 const int tmp = 2; const int & r = tmp; 
+
+	double var = 1.0;
+	const int & r = var;	// OK， 相当于 const int tmp = var; const int & r = tmp;
+
+
+	顶层 const ：表示对象是常量
+	底层 const ：与指针和引用等复合类型的基本类型部分相关
+
+	int i = 0;
+	const int ci = 1;			// 顶层 const
+	int * const p1 = &i;		// 顶层 const
+	const int * p2 = &i;		// 底层 const
+	const int * const p3 = p2	// 左：底层const；右：顶层const
+
+	i = ci;						// OK ，顶层 const tpye -> type 
+	p2 = p3;					// OK ，底层 const 相同
+	// int * p = p3				非法，底层 const 不能赋值给底层非 const
+	
+
+7、constexpr
+	用于表示变量为常量表达式，修饰字面值类型（literal type）（如：整形、指针、引用）
+							（常量表达式，即在编译时便知道具体值
+								const int a = 3;		// 常量表达式
+								const int f = func();	// 非常量表达式，要运行 func() 后才知道 f 的值）
+
+	constexpr int a = 3;		
+	//constexpr int f = func();		非法，因为 f 不是常量表达式
+
+	constexpr int * q = nullptr;	// q 是常量指针，指向 int 类变量
+									// constexpr 指针初始值要么空指针，要么为存在固定地址的对象（非栈变量？）
+									// constexpr 引用，需引用存在固定地址的对象
+
+8、别名声明
+	using DB = double;		// DB d = 3.1; 等价于 double d = 3.1;
+
+9、auto
+	//使用 auto 在一条语句声明多个变量，该语句中所有变量的初始基本数据必须一样（ auto 只能变一种类型）
+	auto i = 0, * p = &i;			// OK
+	// auto j = 0, pi = 3.1			非法
+
+	const int ci = 1;
+	auto a = ci;					// 顶层 const 会忽略，但保留底层 const
+	const auto b = ci;				// b 为 const int
+
+	int i = 1;
+	int & r = i;			
+	auto a = r;						// a 不是引用，而是普通 int 型
+	auto & b = r;					// b 引用 r
+
+	const int i;
+	const int & cr = i;
+	auto & c = cr;					// c 为 const int &
+
+	int i = 1;
+	const int ci = 2;
+	auto & r = ci, * p = &ci		// OK ， auto -> const int
+	// auto & s = i, * p1 = &ci;	非法，s (auto -> int), p1 (auto -> const int)
+
+	int i = 0;
+    int * p = &i;
+    const auto p1 = p;				// p1 类型为 int * const
+
+	int a[10];
+	auto p = a;						// p 为 int *
+	auto & r = a;					// r 为 int (&)[10]
+
+	void func();
+	auto fp = func;					// fp 为 void (*)()
+	auto & fr = func;				// fr 为 void (&)()
+
+	int i;
+	auto && r = i;					// auto -> int & ， int & && 折叠为 int & ，故 r 为 int & 
+
+10、decltype 返回类型
+	decltype (变量)
+		decltype (func())				// 该部分变为 func() 类型，不会执行 func()
+
+		const int ci = 1, &cr = ci;
+		decltype (ci) x = 2;			// x 类型 为 const int
+		decltype (cr) y = x;			// y 引用 x
+
+		int i = 0;
+		int * p = &i;
+		const decltype(p) z = p;		// z 类型为 int * const 
+
+	decltype (表达式)					// 表达式结果为左值，返回类型的引用
+		int i = 0, * p = &i, &r = i;
+		decltype (r + 0) b;				// 表达式 r + 0 结果为 int 型，故 b 为 int 型
+		decltype (*p) c = i;			// 表达式 *p 为解引用操作，返回引用类型，即 int & 而不是 int
+		decltype ((i)) j = i;			// 加括号后 (i) 为表达式，不再是变量 i ，返回 int &
+
+11、引用折叠
+	不能直接定义一个引用的引用类型，但间接定义，如别名、函数模板等
+
+	X & & 、 X & && 、 X && & 折叠成 X &
+	X && && 折叠成 X &&
+
+	如 
+		tempplate <typename T> 
+		void func(T & r);
+
+		int i;
+		func<int &>(i);					// X & & 折叠成 X & ，形参类型为 int &
+
+12、类内初值
+	struct/class
+	{
+		int i = 0;
+	}
